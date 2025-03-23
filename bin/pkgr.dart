@@ -1,11 +1,17 @@
 import 'package:args/args.dart';
-import 'package:pkgr/pkgr.dart';
+import 'package:mason_logger/mason_logger.dart';
 import 'dart:io';
+import 'package:pkgr/commands/help.dart';
+import 'package:pkgr/commands/identities.dart';
+import 'package:pkgr/commands/build/build_interactive.dart';
 
 void main(List<String> arguments) async {
+  final logger = Logger();
   final parser = ArgParser()
     ..addFlag('help',
-        help: 'Show this help message', negatable: false, abbr: 'h');
+        help: 'Show this help message', negatable: false, abbr: 'h')
+    ..addFlag('no-interactive',
+        help: 'Run in non-interactive mode', negatable: false, abbr: 'i');
 
   // Build command
   final buildParser = ArgParser()
@@ -18,6 +24,11 @@ void main(List<String> arguments) async {
             'Developer identity for signing (i.e. "Developer ID Application: Your Name (Your Team ID)")',
         mandatory: true,
         valueHelp: 'identity')
+    ..addOption('provision-profile',
+        help:
+            'Path to provision profile file (i.e. "macos/Runner.provisionprofile")',
+        mandatory: true,
+        valueHelp: 'provision-profile')
     ..addOption('entitlements',
         help: 'Path to entitlements file (i.e. "Entitlements.plist")',
         mandatory: true,
@@ -28,7 +39,9 @@ void main(List<String> arguments) async {
         defaultsTo: './build/macos/Build/Products/Release',
         valueHelp: 'output')
     ..addFlag('help',
-        help: 'Show this help message', negatable: false, abbr: 'h');
+        help: 'Show this help message', negatable: false, abbr: 'h')
+    ..addFlag('no-interactive',
+        help: 'Run in non-interactive mode', negatable: false, abbr: 'i');
 
   // List identities command
   final listIdentitiesParser = ArgParser()
@@ -43,54 +56,51 @@ void main(List<String> arguments) async {
 
     // Handle root-level help flag
     if (results['help'] as bool) {
-      print('PKGR - A tool to package your Flutter app for Mac App Store\n');
-      print(parser.usage);
+      showHelp(logger, parser);
       exit(0);
     }
 
     final command = results.command?.name;
 
     if (command == null) {
-      print('Please specify a command. Available commands:');
-      print(parser.usage);
+      logger.err('Please specify a command. Available commands:');
       exit(1);
     }
-
-    final pkgr = Pkgr();
 
     switch (command) {
       case 'build':
         // If help
         if (results.command!['help']) {
-          print('Build a Flutter app package for Mac App Store:\n');
-          print(buildParser.usage);
+          showHelp(logger, buildParser);
           exit(0);
         }
 
-        await pkgr.buildPackage(
-          appName: results.command!['app-name'],
-          identity: results.command!['identity'],
-          entitlements: results.command!['entitlements'],
-          output: results.command!['output'],
-        );
+        final isNonInteractive = results['no-interactive'] as bool ||
+            results.command!['no-interactive'] as bool;
+
+        if (isNonInteractive) {
+          logger.info('Not implemented yet');
+        } else {
+          await BuildInteractive().build();
+        }
         break;
       case 'list-identities':
         // If help
         if (results.command!['help']) {
-          print('List available signing identities:\n');
-          print(listIdentitiesParser.usage);
+          showHelp(logger, listIdentitiesParser);
           exit(0);
         }
 
-        await pkgr.listIdentities();
+        final progress = logger.progress('Fetching signing identities...\n');
+        await IdentityManager().getSigningIdentities();
+        progress.complete('Identities listed successfully!');
         break;
       default:
-        print('Unknown command: $command');
-        print(parser.usage);
+        logger.err('Unknown command: $command');
         exit(1);
     }
   } catch (e) {
-    print('Error: $e');
+    logger.err('Error: $e');
     exit(1);
   }
 }
