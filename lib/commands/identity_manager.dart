@@ -1,37 +1,23 @@
 import 'package:mason_logger/mason_logger.dart';
+import 'package:pkgr/utils/identity.dart';
 import 'package:pkgr/utils/run_command.dart';
-
-class Identity {
-  final String name;
-  final String id;
-
-  Identity({required this.name, required this.id});
-
-  @override
-  String toString() {
-    return 'Identity(name: $name, id: $id)';
-  }
-
-  String get parts {
-    return '$id\t$name';
-  }
-
-  Identity? get preferredInstallerIdentity {
-    return id.contains('Installer') ? this : null;
-  }
-
-  Identity? get preferredApplicationIdentity {
-    return id.contains('Application:') ? this : null;
-  }
-}
 
 /// A command to get the signing identities for the current user.
 class IdentityManager {
   final logger = Logger();
+  List<Identity> identities = [];
+
+  Identity? get preferredApplicationIdentity {
+    return identities.firstWhere((e) => e.name.contains('Application:'));
+  }
+
+  Identity? get preferredInstallerIdentity {
+    return identities.firstWhere((e) => e.name.contains('Installer'));
+  }
 
   /// Get the signing identities for the current user.
   Future<void> getSigningIdentities() async {
-    final identities = await getSigningIdentitiesAsList();
+    identities = await getSigningIdentitiesAsList();
     logger.info('Identities:\n${identities.map((e) => e.parts).join('\n')}');
   }
 

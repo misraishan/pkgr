@@ -1,9 +1,10 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'dart:io';
+import 'package:pkgr/commands/build_manager.dart';
 import 'package:pkgr/commands/help.dart';
-import 'package:pkgr/commands/identities.dart';
-import 'package:pkgr/commands/build/build_interactive.dart';
+import 'package:pkgr/commands/identity_manager.dart';
 
 void main(List<String> arguments) async {
   final logger = Logger();
@@ -81,7 +82,7 @@ void main(List<String> arguments) async {
         if (isNonInteractive) {
           logger.info('Not implemented yet');
         } else {
-          await BuildInteractive().build();
+          await BuildManager().interactiveBuilder();
         }
         break;
       case 'list-identities':
