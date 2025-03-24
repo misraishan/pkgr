@@ -1,12 +1,10 @@
 name: pkgr
 description: A tool to package your Flutter app into a single pkg binary for Mac App Store deployment
 version: 0.1.0
-# repository: https://github.com/my_org/my_repo
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
-# Add regular dependencies here.
 dependencies:
   args: ^2.4.2
   mason_logger: ^0.3.2
@@ -16,9 +14,3 @@ dependencies:
 dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
-
-flutter:
-  plugin:
-    platforms:
-      macos:
-        default_package: pkgr
