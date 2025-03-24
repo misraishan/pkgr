@@ -6,7 +6,7 @@ import 'package:pkgr/commands/build_manager.dart';
 import 'package:pkgr/commands/help.dart';
 import 'package:pkgr/commands/identity_manager.dart';
 
-void main(List<String> arguments) async {
+Future<void> main(List<String> arguments) async {
   final logger = Logger();
   final parser = ArgParser()
     ..addFlag('help',
