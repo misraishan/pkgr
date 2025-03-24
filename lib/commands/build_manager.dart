@@ -36,12 +36,23 @@ class BuildManager {
     await runCommand(signAppCmd);
 
     // Step 2: Sign with entitlements
+    // TODO: Add option for prefix, ".app" is not always correct
     final signEntitlementsCmd =
         'codesign --force --deep --sign "${applicationIdentity.id}" '
         '--entitlements $entitlements --options runtime --prefix app.$appName $basePath/$appName.app/';
     await runCommand(signEntitlementsCmd);
 
-    // Step 3: Create pkg
+    // Step 3: Clean and verify
+    final removeQuarantine =
+        'xattr -d com.apple.quarantine $basePath/$appName.app/Contents/embedded.provisionprofile';
+    await runCommand(removeQuarantine);
+
+    // Step 3.1: Verify
+    final verifyCmd =
+        'codesign --verify --deep --strict --verbose=2 $basePath/$appName.app';
+    await runCommand(verifyCmd);
+
+    // Step 4: Create pkg
     final pkgCmd =
         'productbuild --component $basePath/$appName.app /Applications '
         '--sign "${installerIdentity.id}" ${path.join(output, '$appName.pkg')}';
