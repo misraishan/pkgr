@@ -1,0 +1,2 @@
+# PKGR and Apple docs
+These docs are basically a super simplified and flutter-oriented version of the [Apple docs](https://developer.apple.com/documentation/xcode/packaging-mac-software-for-distribution). Apple's documentation can sometimes be overwhelming and difficult to understand, so the aim of these docs is to simplify the process and help you understand the necessary profiles and certificates needed to package your Flutter app for the Mac App Store.
