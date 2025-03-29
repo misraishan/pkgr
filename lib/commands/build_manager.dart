@@ -6,6 +6,7 @@ import 'package:pkgr/commands/identity_manager.dart';
 import 'package:pkgr/utils/identity.dart';
 import 'package:pkgr/utils/run_command.dart';
 import 'package:prompts/prompts.dart' as prompts;
+import 'package:xml/xml.dart' as xml;
 
 /// A class to handle the packaging and signing of Flutter apps for Mac App Store.
 class BuildManager {
@@ -30,16 +31,24 @@ class BuildManager {
     File(embeddedProvisionProfile).createSync(recursive: true);
     File(provisionProfile).copySync(embeddedProvisionProfile);
 
+    // Step 0.5: Fetch the app's bundle identifier from the app's Info.plist
+    final infoPlistPath = '$basePath/$appName.app/Contents/Info.plist';
+    final bundleIdentifier = await _fetchBundleIdentifier(infoPlistPath);
+    if (bundleIdentifier == null) {
+      _logger.err('Failed to fetch bundle identifier');
+      exit(1);
+    }
+    _logger.info('Bundle Identifier: $bundleIdentifier');
+
     // Step 1: Sign the app bundle
     final signAppCmd =
         'codesign --deep --force --sign "${applicationIdentity.id}" $basePath/$appName.app';
     await runCommand(signAppCmd);
 
     // Step 2: Sign with entitlements
-    // TODO: Add option for prefix, ".app" is not always correct
     final signEntitlementsCmd =
         'codesign --force --deep --sign "${applicationIdentity.id}" '
-        '--entitlements $entitlements --options runtime --prefix app.$appName $basePath/$appName.app/';
+        '--entitlements $entitlements --options runtime --prefix $bundleIdentifier $basePath/$appName.app/';
     await runCommand(signEntitlementsCmd);
 
     // Step 3: Clean and verify
@@ -148,5 +157,40 @@ class BuildManager {
       output: output,
     );
     progress.complete('Package built successfully!');
+  }
+
+  /// Fetches the bundle identifier from the Info.plist file.
+  Future<String?> _fetchBundleIdentifier(String infoPlistPath) async {
+    try {
+      final infoPlistContent = await File(infoPlistPath).readAsString();
+      final document = xml.XmlDocument.parse(infoPlistContent);
+
+      final dictElement = document.findAllElements('dict').first;
+      String? bundleIdentifier;
+      bool nextIsValue = false;
+
+      for (var child in dictElement.children) {
+        if (child is xml.XmlElement) {
+          if (child.name.local == 'key' &&
+              child.innerText == 'CFBundleIdentifier') {
+            nextIsValue = true;
+          } else if (nextIsValue && child.name.local == 'string') {
+            bundleIdentifier = child.innerText;
+            break;
+          }
+        }
+      }
+
+      return bundleIdentifier;
+    } on FileSystemException catch (e) {
+      if (e.osError?.errorCode == 2) {
+        _logger.err('Info.plist not found');
+        return null;
+      }
+      rethrow;
+    } catch (e) {
+      _logger.err('Error reading or parsing Info.plist: $e');
+      return null;
+    }
   }
 }
